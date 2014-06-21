@@ -1,1 +1,6 @@
 *.pyc
+
+# setup.py output
+/build/
+/dist/
+/MANIFEST
