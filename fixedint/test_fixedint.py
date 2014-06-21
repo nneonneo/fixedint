@@ -27,6 +27,12 @@ class ClassTests(unittest.TestCase):
         self.assertEqual(FixedInt(32, signed=False), UInt32)
         self.assertEqual(FixedInt(64, signed=False), UInt64)
 
+    def test_subclassing(self):
+        from fixedint.util import HexFormattingMixin
+        class MyUInt32(HexFormattingMixin, UInt32):
+            pass
+        self.assertEqual(str(MyUInt32(32)), '0x00000020')
+
 tests.append(ClassTests)
 
 # ----------------------------------------------------------------------------
