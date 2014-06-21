@@ -165,6 +165,13 @@ class BasicTests(unittest.TestCase):
         self.assertEqual(x, y)
         x += MutableFixedInt(80)(1<<79)
         self.assertEqual(x.width, 72)
+        x >>= 100
+        self.assertEqual(x, 0)
+        x += 2
+        self.assertEqual(y, 2)
+        x **= 70
+        self.assertEqual(y, 2**70)
+
 
     def test_str(self):
         for ff in [FixedInt(12), MutableFixedInt(12), FixedInt(91), MutableFixedInt(91)]:

@@ -139,6 +139,9 @@ class FixedInt:
 
     @int_method
     def __pow__(self, other, modulo=None):
+        # Jython can't handle int.__pow__(x, y, None)
+        if modulo is None:
+            return type(self)(int.__pow__(int(self), int(other)))
         return type(self)(int.__pow__(int(self), int(other), modulo))
 
     @int_method
@@ -181,6 +184,13 @@ class MutableFixedInt(FixedInt):
         @int_method
         def __format__(self, format_spec):
             return format(self._val, format_spec)
+
+    def __ipow__(self, other, modulo=None):
+        if modulo is None:
+            self._val = self._rectify(int.__pow__(int(self), int(other)))
+        else:
+            self._val = self._rectify(int.__pow__(int(self), int(other), modulo))
+        return self
 
 ## Arithmetic methods
 def _arith_unary_factory(name, mutable):
