@@ -140,6 +140,26 @@ class BasicTests(unittest.TestCase):
             if not PY3K:
                 self.assertTrue(cmp(x, 999999) > 0)
 
+    def test_implicit_conversion(self):
+        f = FixedInt(72)
+        x = f(32767)
+        y = x
+        self.assertEqual(x, y)
+        x += 100
+        self.assertNotEqual(x, y)
+        x += FixedInt(80)(1<<79)
+        self.assertEqual(x.width, 80)
+
+    def test_inplace_operators(self):
+        mf = MutableFixedInt(72)
+        x = mf(32767)
+        y = x
+        self.assertEqual(x, y)
+        x += 100
+        self.assertEqual(x, y)
+        x += MutableFixedInt(80)(1<<79)
+        self.assertEqual(x.width, 72)
+
     def test_str(self):
         for ff in [FixedInt(12), MutableFixedInt(12), FixedInt(91), MutableFixedInt(91)]:
             self.assertEqual(str(ff(1)), '1')

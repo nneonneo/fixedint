@@ -22,8 +22,10 @@ class FixedMetaProperty(object):
     def __set__(self, obj, value):
         raise AttributeError("property %s is read-only" % self.name)
 
-if sys.version_info[:2] < (2,6):
-    # Python 2.5 and below don't allow int operators to be applied to longs
+if not PY3K:
+    # While it'd be nice to put machine-sized integers into Python 2.x "int"s,
+    # it turns out that the int methods occasionally freak out when given longs.
+    # So, we use arbitrary-precision ints for all Pythons.
     int = long
 
 _class_cache = WeakValueDictionary()
@@ -63,10 +65,7 @@ class _FixedIntBaseMeta(type):
         if mutable:
             bases = (MutableFixedInt,)
         else:
-            if PY3K or max <= sys.maxint:
-                bases = (FixedInt, int)
-            else:
-                bases = (FixedInt, long)
+            bases = (FixedInt, int)
 
         dict = {}
         dict['width'] = FixedProperty(width)
@@ -80,8 +79,7 @@ class _FixedIntBaseMeta(type):
             _mask2 = 1<<(width-1)
             def _rectify(val):
                 val = val & _mask
-                val = val - 2*(val & _mask2)
-                return int(val)
+                return int(val - 2*(val & _mask2))
         else:
             _mask = (1<<width) - 1
             def _rectify(val):
@@ -279,13 +277,34 @@ def _nonarith_binfunc_factory_mutable(name):
     return _f
 
 _mutable_binfunc = 'truediv rtruediv divmod rdivmod rlshift rrshift'.split()
-if PY3K:
-    _mutable_binfunc += 'lt le eq ne gt ge'.split()
-else:
+if hasattr(int, '__cmp__'):
     _mutable_binfunc += ['cmp']
+else:
+    _mutable_binfunc += 'lt le eq ne gt ge'.split()
 for f in _mutable_binfunc:
     s = '__%s__' % f
     setattr(MutableFixedInt, s, _nonarith_binfunc_factory_mutable(s))
 
 
 ## In-place operators
+def _inplace_factory_mutable(iname, name, op):
+    ''' Factory function producing methods for augmented assignments on Mutable instances. '''
+    intfunc = getattr(int, name)
+    def _f(self, other):
+        self._val = self._rectify(intfunc(self._val, int(other)))
+        return self
+    _f.__name__ = iname
+    doc = list.__iadd__.__doc__
+    if doc:
+        _f.__doc__ = doc.replace('__iadd__', name).replace('+=', op)
+    return _f
+
+# pow is special because it takes three arguments.
+_inplace_func = 'add,+ sub,- mul,* truediv,/ floordiv,// mod,% lshift,<< rshift,<< and,& or,| xor,^'.split()
+if not PY3K:
+    _inplace_func += ['div,/']
+for f in _inplace_func:
+    fn, op = f.split(',')
+    si = '__i%s__' % fn
+    so = '__%s__' % fn
+    setattr(MutableFixedInt, si, _inplace_factory_mutable(si, so, op+'='))
