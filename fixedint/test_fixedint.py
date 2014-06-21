@@ -172,7 +172,6 @@ class BasicTests(unittest.TestCase):
         x **= 70
         self.assertEqual(y, 2**70)
 
-
     def test_str(self):
         for ff in [FixedInt(12), MutableFixedInt(12), FixedInt(91), MutableFixedInt(91)]:
             self.assertEqual(str(ff(1)), '1')
@@ -181,6 +180,43 @@ class BasicTests(unittest.TestCase):
             self.assertEqual(hex(ff(1)), '0x1')
 
 tests.append(BasicTests)
+
+# ----------------------------------------------------------------------------
+class ExtraFunctionTests(unittest.TestCase):
+    def test_bytes(self):
+        for ff in [FixedInt(96), MutableFixedInt(96)]:
+            val = ff(-1)
+            if PY3K:
+                byte = lambda c: bytes([c])
+            else:
+                byte = lambda c: chr(c)
+            self.assertEqual(val.to_bytes(), byte(255) * 12)
+            self.assertEqual(val.to_bytes(8), byte(255) * 8)
+            self.assertEqual(ff.from_bytes(byte(255) * 12), val)
+
+        for ff in [FixedInt(32), MutableFixedInt(32)]:
+            for v in [0xdeadbeef, 0xfeedface, 0x0badf00d, 0x12345678, 0x87654321]:
+                for endian in ['big', 'little']:
+                    val = ff(v)
+                    data = val.to_bytes(byteorder=endian)
+                    self.assertEqual(len(data), 4)
+                    val2 = ff.from_bytes(data, byteorder=endian)
+                    self.assertEqual(val, val2)
+
+        for ff in [UInt32, MutableUInt32]:
+            for v in [0xdeadbeef, 0xfeedface, 0x0badf00d, 0x12345678, 0x87654321]:
+                for endian in ['big', 'little']:
+                    val = ff(v)
+                    data = val.to_bytes(byteorder=endian)
+                    self.assertEqual(len(data), 4)
+                    val2 = FixedInt.from_bytes(data, byteorder=endian, signed=False)
+                    self.assertTrue(type(val2).__name__.endswith('UInt32'))
+                    self.assertEqual(val, val2)
+
+        t = UInt32(32).to_bytes()
+        self.assertRaises(ValueError, UInt32.from_bytes, t, signed=True)
+
+tests.append(ExtraFunctionTests)
 
 # ----------------------------------------------------------------------------
 def run(verbosity=1, repeat=1):

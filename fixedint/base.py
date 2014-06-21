@@ -156,6 +156,56 @@ class FixedInt:
     def __str__(self):
         return str(int(self))
 
+    def to_bytes(self, length=None, byteorder=sys.byteorder):
+        if length is None:
+            length = (self.width + 7) // 8
+        try:
+            return int(self).to_bytes(length, byteorder=byteorder, signed=self.signed)
+        except (OverflowError, AttributeError):
+            pass
+
+        val = int(self) & ((1 << (length * 8)) - 1)
+        out = []
+        while length > 0:
+            out.append(val & 0xff)
+            val >>= 8
+            length -= 1
+        if byteorder == 'big':
+            out = reversed(out)
+        if PY3K:
+            return bytes(out)
+        else:
+            return ''.join(map(chr, out))
+
+    @classmethod
+    def from_bytes(cls, bytes, byteorder=sys.byteorder, signed=None):
+        if cls in (FixedInt, MutableFixedInt):
+            if signed is None:
+                signed = False
+        elif signed is None:
+                signed = cls.signed
+        else:
+            raise ValueError("can't set signed with a concrete FixedInt")
+
+        blen = len(bytes)
+        try:
+            val = int.from_bytes(bytes, byteorder=byteorder, signed=signed)
+        except AttributeError:
+            val = 0
+            if byteorder == 'big':
+                bytes = reversed(bytes)
+            if PY3K:
+                for i,c in enumerate(bytes):
+                    val |= c << (8 * i)
+            else:
+                for i,c in enumerate(bytes):
+                    val |= ord(c) << (8 * i)
+
+        if cls in (FixedInt, MutableFixedInt):
+            return cls(blen*8, signed=signed)(val)
+        else:
+            return cls(val)
+
     if PY3K:
         @int_method
         def __round__(self, n=0):
