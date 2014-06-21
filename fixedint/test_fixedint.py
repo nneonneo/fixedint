@@ -4,11 +4,7 @@ from fixedint import *
 
 tests = []
 
-def addtest(c):
-    tests.append(c)
-    return c
-
-@addtest
+# ----------------------------------------------------------------------------
 class ClassTests(unittest.TestCase):
     def test_subclass_base(self):
         self.assertRaises(Exception, type, 'TestClass', (FixedInt,), {})
@@ -17,8 +13,9 @@ class ClassTests(unittest.TestCase):
     def test_class_cache(self):
         self.assertEqual(FixedInt(99), FixedInt(99))
         self.assertEqual(MutableFixedInt(42), MutableFixedInt(42))
+tests.append(ClassTests)
 
-@addtest
+# ----------------------------------------------------------------------------
 class BasicTests(unittest.TestCase):
     def test_signed(self):
         f10 = FixedInt(10)
@@ -33,7 +30,9 @@ class BasicTests(unittest.TestCase):
         self.assertEqual(int(f10(511)), 511)
         self.assertEqual(int(f10(512)), -512)
         self.assertEqual(int(f10(511) + 1), -512)
+tests.append(BasicTests)
 
+# ----------------------------------------------------------------------------
 def run(verbosity=1, repeat=1):
     suite = unittest.TestSuite()
     for cls in tests:

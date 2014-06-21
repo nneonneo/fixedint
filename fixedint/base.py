@@ -30,7 +30,8 @@ class _FixedIntBaseMeta(type):
 
         for base in bases:
             if issubclass(base, FixedInt):
-                raise Exception("Cannot subclass {0}; use the {0} constructor to produce new subclasses.".format(base.__name__))
+                basename = base.__name__
+                raise Exception("Cannot subclass %s; use the %s constructor to produce new subclasses." % (basename, basename))
         raise Exception("Cannot subclass this class.")
 
     def __call__(self, width, signed=True, mutable=None, hex=False, name=None):
