@@ -1,8 +1,9 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import functools
 import sys
+from fixedint.compat import *
+from weakref import WeakValueDictionary
 
 class FixedProperty(object):
     def __init__(self, val):
@@ -21,6 +22,12 @@ class FixedMetaProperty(object):
     def __set__(self, obj, value):
         raise AttributeError("property %s is read-only" % self.name)
 
+if sys.version_info[:2] < (2,6):
+    # Python 2.5 and below don't allow int operators to be applied to longs
+    int = long
+
+_class_cache = WeakValueDictionary()
+
 _subclass_token = object()
 class _FixedIntBaseMeta(type):
     def __new__(cls, name, bases, dict):
@@ -34,13 +41,18 @@ class _FixedIntBaseMeta(type):
                 raise Exception("Cannot subclass %s; use the %s constructor to produce new subclasses." % (basename, basename))
         raise Exception("Cannot subclass this class.")
 
-    def __call__(self, width, signed=True, mutable=None, hex=False, name=None):
+    def __call__(self, width, signed=True, mutable=None):
         signed = bool(signed)
         if mutable is None:
             # Take mutable from constructor used (FixedInt or MutableFixedInt)
             mutable = self._mutable
-        hex = bool(hex)
-        
+
+        cachekey = (width, signed, mutable)
+        try:
+            return _class_cache[cachekey]
+        except KeyError:
+            pass
+            
         if signed:
             min = -1<<(width-1)
             max = (1<<(width-1))-1
@@ -50,10 +62,11 @@ class _FixedIntBaseMeta(type):
 
         if mutable:
             bases = (MutableFixedInt,)
-        elif max <= sys.maxint:
-            bases = (FixedInt, int)
         else:
-            bases = (FixedInt, long)
+            if PY3K or max <= sys.maxint:
+                bases = (FixedInt, int)
+            else:
+                bases = (FixedInt, long)
 
         dict = {}
         dict['width'] = FixedProperty(width)
@@ -61,7 +74,6 @@ class _FixedIntBaseMeta(type):
         dict['mutable'] = FixedProperty(mutable)
         dict['minval'] = FixedProperty(min)
         dict['maxval'] = FixedProperty(max)
-        dict['hex'] = hex
 
         if signed:
             _mask = (1<<width) - 1
@@ -69,11 +81,11 @@ class _FixedIntBaseMeta(type):
             def _rectify(val):
                 val = val & _mask
                 val = val - 2*(val & _mask2)
-                return val
+                return int(val)
         else:
             _mask = (1<<width) - 1
             def _rectify(val):
-                return val & _mask
+                return int(val & _mask)
         dict['_rectify'] = staticmethod(_rectify)
 
         if not mutable:
@@ -84,10 +96,11 @@ class _FixedIntBaseMeta(type):
             _newfunc.__name__ = '__new__'
             dict['__new__'] = _newfunc
 
-        if name is None:
-            name = ''.join(['Mutable'*mutable, 'U'*(not signed), 'Int', str(width)])
+        name = ''.join(['Mutable'*mutable, 'U'*(not signed), 'Int', str(width)])
 
-        return _FixedIntMeta(name, bases, dict)
+        cls = _FixedIntMeta(name, bases, dict)
+        _class_cache[cachekey] = cls
+        return cls
 
     width = FixedMetaProperty('width')
     signed = FixedMetaProperty('signed')
@@ -101,28 +114,30 @@ class _FixedIntMeta(_FixedIntBaseMeta):
 
 
 def int_method(f):
-    f.__doc__ = getattr(int, f.__name__).__doc__
-    return f
+    if isinstance(f, str):
+        def wrapper(f2):
+            f2.__name__ = f
+            return int_method(f2)
+        return wrapper
+    else:
+        f.__doc__ = getattr(int, f.__name__).__doc__
+        return f
 
 class FixedInt:
     __slots__ = ()
     _mutable = False
     _subclass_enable = _subclass_token
-    __metaclass__ = _FixedIntBaseMeta
 
-    # width, signed, mutable, minval, maxval, hex defined in metaclass
+    # width, signed, mutable, minval, maxval defined in metaclass
     # _rectify defined in metaclass
     # __new__ defined in metaclass
 
-    @int_method
-    def __hex__(self):
-        width = (self.width + 3) // 4
-        return '0x%0*x' % (width, int(self))
-
-    @int_method
-    def __oct__(self):
-        width = (self.width + 2) // 3
-        return '0x%0*o' % (width, int(self))
+    if not PY3K:
+        @int_method
+        def __hex__(self):
+            return '%#x' % int(self)
+        def __oct__(self):
+            return '%#o' % int(self)
 
     @int_method
     def __pow__(self, other, modulo=None):
@@ -138,9 +153,20 @@ class FixedInt:
 
     @int_method
     def __str__(self):
-        if self.hex:
-            return hex(self)
         return str(int(self))
+
+    if PY3K:
+        @int_method
+        def __round__(self, n=0):
+            return int(self)
+
+    # Inherited methods which are fine as-is:
+    # complex, int, long, float, index
+    # truediv, rtruediv, divmod, rdivmod, rlshift, rrshift
+    # format
+
+FixedInt = add_metaclass(_FixedIntBaseMeta)(FixedInt)
+
 
 class MutableFixedInt(FixedInt):
     _mutable = True
@@ -153,13 +179,31 @@ class MutableFixedInt(FixedInt):
 
         self._val = self._rectify(val)
 
-    @int_method
-    def __int__(self):
-        return self._val
+    if PY3K:
+        @int_method
+        def __format__(self, format_spec):
+            return format(self._val, format_spec)
 
-    @int_method
-    def __index__(self):
-        return self._val
+## Arithmetic methods
+def _arith_unary_factory(name, mutable):
+    ''' Factory function producing methods for unary operations. '''
+    intfunc = getattr(int, name)
+    if mutable:
+        @int_method(name)
+        def _f(self):
+            return type(self)(intfunc(self._val))
+    else:
+        @int_method(name)
+        def _f(self):
+            return type(self)(intfunc(self))
+    return _f
+
+_arith_unary = 'neg pos abs invert'.split()
+for f in _arith_unary:
+    s = '__%s__' % f
+    setattr(FixedInt, s, _arith_unary_factory(s, mutable=False))
+    setattr(MutableFixedInt, s, _arith_unary_factory(s, mutable=True))
+
 
 def _arith_convert(t1, t2):
     if not issubclass(t2, FixedInt):
@@ -186,32 +230,62 @@ def _arith_convert(t1, t2):
 def _arith_binfunc_factory(name):
     ''' Factory function producing methods for arithmetic operators '''
     intfunc = getattr(int, name)
+    @int_method(name)
     def _f(self, other):
         nt = _arith_convert(type(self), type(other))
         return nt(intfunc(int(self), int(other)))
-    functools.update_wrapper(_f, intfunc)
     return _f
 
-def _misc_binfunc_factory(name):
-    ''' Factory function producing methods for non-arithmetic operators '''
+# divmod, rdivmod, truediv, rtruediv are considered non-arithmetic since they don't return ints
+# pow, rpow, rlshift, and rrshift are special since the LHS and RHS are very different
+_arith_binfunc = 'add sub mul floordiv mod lshift rshift and xor or'.split()
+_arith_binfunc += 'radd rsub rmul rfloordiv rmod rand rxor ror'.split()
+if not PY3K:
+    _arith_binfunc += 'div rdiv'.split()
+
+for f in _arith_binfunc:
+    s = '__%s__' % f
+    setattr(FixedInt, s, _arith_binfunc_factory(s))
+
+
+## Non-arithmetic methods (Mutable only)
+def _nonarith_unary_factory_mutable(name):
+    ''' Factory function producing methods for unary operations. '''
     intfunc = getattr(int, name)
+    @int_method(name)
+    def _f(self):
+        return intfunc(self._val)
+    return _f
+
+_mutable_unary = 'int float index'.split()
+if sys.version_info[:2] >= (2,6):
+    _mutable_unary += ['trunc']
+if PY3K:
+    _mutable_unary += 'bool'.split()
+else:
+    _mutable_unary += 'nonzero long'.split()
+
+for f in _mutable_unary:
+    s = '__%s__' % f
+    setattr(MutableFixedInt, s, _nonarith_unary_factory_mutable(s))
+
+
+def _nonarith_binfunc_factory_mutable(name):
+    ''' Factory function producing methods for non-arithmetic binary operators on Mutable instances. '''
+    intfunc = getattr(int, name)
+    @int_method(name)
     def _f(self, other):
-        return intfunc(int(self), int(other))
-    functools.update_wrapper(_f, intfunc)
+        return intfunc(self._val, int(other))
     return _f
 
-def _arith_unary_factory(name):
-    intfunc = getattr(int, name)
-    def _f(self):
-        nt = type(self)
-        return nt(intfunc(int(self)))
-    functools.update_wrapper(_f, intfunc)
-    return _f
+_mutable_binfunc = 'truediv rtruediv divmod rdivmod rlshift rrshift'.split()
+if PY3K:
+    _mutable_binfunc += 'lt le eq ne gt ge'.split()
+else:
+    _mutable_binfunc += ['cmp']
+for f in _mutable_binfunc:
+    s = '__%s__' % f
+    setattr(MutableFixedInt, s, _nonarith_binfunc_factory_mutable(s))
 
-def _misc_unary_factory(name):
-    ''' Factory function producing methods for non-arithmetic operators '''
-    intfunc = getattr(int, name)
-    def _f(self):
-        return intfunc(int(self))
-    functools.update_wrapper(_f, intfunc)
-    return _f
+
+## In-place operators

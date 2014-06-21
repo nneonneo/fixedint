@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from .base import FixedInt, MutableFixedInt
+from fixedint.base import FixedInt, MutableFixedInt
+from fixedint.aliases import *
 
 def test(verbosity=1, repeat=1):
-    from . import test_fixedint
+    from fixedint import test_fixedint
     return test_fixedint.run(verbosity, repeat)
