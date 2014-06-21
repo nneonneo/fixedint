@@ -47,7 +47,7 @@ class _FixedIntBaseMeta(type):
         signed = bool(signed)
         if mutable is None:
             # Take mutable from constructor used (FixedInt or MutableFixedInt)
-            mutable = self._mutable
+            mutable = (self == MutableFixedInt)
 
         cachekey = (width, signed, mutable)
         try:
@@ -123,7 +123,6 @@ def int_method(f):
 
 class FixedInt:
     __slots__ = ()
-    _mutable = False
     _subclass_enable = _subclass_token
 
     # width, signed, mutable, minval, maxval defined in metaclass
@@ -220,7 +219,6 @@ FixedInt = add_metaclass(_FixedIntBaseMeta)(FixedInt)
 
 
 class MutableFixedInt(FixedInt):
-    _mutable = True
     _subclass_enable = _subclass_token
 
     def __init__(self, val=0, base=None):
