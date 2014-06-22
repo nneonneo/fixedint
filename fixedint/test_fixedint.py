@@ -216,6 +216,72 @@ class ExtraFunctionTests(unittest.TestCase):
         t = UInt32(32).to_bytes()
         self.assertRaises(ValueError, UInt32.from_bytes, t, signed=True)
 
+    def test_slice_errors(self):
+        ff = FixedInt(24)
+        val = ff(1024)
+        # Steps unsupported
+        self.assertRaises(ValueError, lambda:val[::-1])
+        self.assertRaises(ValueError, lambda:val[::1])
+        # Mixed complex numbers unsupported
+        self.assertRaises(ValueError, lambda:val[:2+4j])
+        # Invalid indices
+        self.assertRaises(IndexError, lambda:val[100:200])
+        self.assertRaises(IndexError, lambda:val[5:0])
+        self.assertRaises(IndexError, lambda:val[1024])
+
+    def test_getslice(self):
+        for ff in [FixedInt(48), MutableFixedInt(48)]:
+            testval = 0xfedcba123456
+            fixed = ff(testval)
+
+            x = testval
+            for i in range(48):
+                self.assertEqual(fixed[i], x & 1)
+                x >>= 1
+
+            x = testval
+            for i in range(12):
+                r = fixed[i*4:i*4+4]
+                self.assertEqual(r, x & 0xf)
+                self.assertEqual(r.width, 4)
+                self.assertEqual(r.signed, False)
+                x >>= 4
+
+            x = testval
+            for i in range(12):
+                r = fixed[i*4:4j]
+                self.assertEqual(r, x & 0xf)
+                self.assertEqual(r.width, 4)
+                self.assertEqual(r.signed, False)
+                x >>= 4
+
+    def test_setslice(self):
+        ff = MutableFixedInt(28, signed=False)
+        testval = 0xbadf00d
+        val = ff(0)
+        for i in range(28):
+            val[i] = testval & (1<<i)
+        self.assertEqual(val, testval)
+
+        val = ff(0)
+        x = testval
+        for i in range(7):
+            val[i*4:i*4+4] = x & 0xf
+            x >>= 4
+        self.assertEqual(val, testval)
+
+        val = ff(0)
+        x = testval
+        for i in range(7):
+            val[i*4:4j] = x & 0xf
+            x >>= 4
+        self.assertEqual(val, testval)
+
+        val = ff(0)
+        val2 = val
+        val[:] = testval
+        self.assertEqual(val2, testval)
+
 tests.append(ExtraFunctionTests)
 
 # ----------------------------------------------------------------------------

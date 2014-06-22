@@ -154,6 +154,65 @@ class FixedInt:
     def __str__(self):
         return str(int(self))
 
+    @classmethod
+    def _canonicalize_index(cls, idx):
+        if idx < 0:
+            idx += cls.width
+        return idx
+
+    @classmethod
+    def _canonicalize_slice(cls, slice):
+        start = slice.start
+        stop = slice.stop
+
+        if slice.step is not None:
+            raise ValueError("slice step unsupported")
+
+        if start is None:
+            start = 0
+        else:
+            start = cls._canonicalize_index(start)
+
+        if stop is None:
+            stop = cls.width
+        elif isinstance(stop, complex):
+            if stop.real:
+                raise ValueError("invalid slice stop: must be integer or pure-imaginary complex number")
+            stop = int(stop.imag) + start
+        else:
+            stop = cls._canonicalize_index(stop)
+
+        if 0 <= start < stop <= cls.width:
+            return (start, stop)
+        else:
+            raise IndexError("invalid slice %d:%d" % (start, stop))
+
+    def __getitem__(self, item):
+        ''' Slice the bits of an integer.
+
+        x[a] gets a single bit at position a, returning a bool.
+        x[a:b] gets a range of bits as a FixedInt.
+
+        For slice notation, b may be of the form 'bj' (a complex number) to treat it
+        as a length rather than a stop index.
+        The result will be of the type UIntX, where X is the number of bits in the range.
+
+        Examples:
+        x[0]: equal to (x & 1)
+        x[1:5] or x[1:4j]: equal to (x & 31) >> 1
+        x[:5]: equal to (x & 31)
+        '''
+
+        if isinstance(item, slice):
+            start, stop = self._canonicalize_slice(item)
+            return FixedInt(stop - start, signed=False)(int(self) >> start)
+        else:
+            item = self._canonicalize_index(item)
+            if 0 <= item < self.width:
+                return bool(int(self) & (1 << item))
+            else:
+                raise IndexError("index %d out of range" % item)
+
     def to_bytes(self, length=None, byteorder=sys.byteorder):
         if length is None:
             length = (self.width + 7) // 8
@@ -240,6 +299,30 @@ class MutableFixedInt(FixedInt):
         else:
             self._val = self._rectify(int.__pow__(int(self), int(other), modulo))
         return self
+
+    def __setitem__(self, item, value):
+        ''' Modify a slice of aninteger.
+
+        x[a]=y sets a single bit at position a.
+        x[a:b]=y sets a range of bits from an integer.
+
+        See __getitem__ for more details on the slice notation.
+        '''
+
+        if isinstance(item, slice):
+            start, stop = self._canonicalize_slice(item)
+            mask = (1 << (stop - start)) - 1
+            self._val = (self._val & ~(mask << start)) | ((value & mask) << start)
+        else:
+            item = self._canonicalize_index(item)
+            if 0 <= item < self.width:
+                if value:
+                    self._val |= (1 << item)
+                else:
+                    self._val &= ~(1 << item)
+                return bool(int(self) & (1 << item))
+            else:
+                raise IndexError("index %d out of range" % item)
 
 ## Arithmetic methods
 def _arith_unary_factory(name, mutable):
