@@ -53,7 +53,7 @@ result will be truncated.
 
 The exceptions are as follows:
 
-* ``divmod`` returns a tuple of plain ``int``s
+* ``divmod`` returns a tuple of plain ``int`` s
 * true division returns a float
 * ``**``, ``<<`` and ``>>`` will return a ``FixedInt`` if the left operand was a
   ``FixedInt``, and plain ``int`` otherwise.
