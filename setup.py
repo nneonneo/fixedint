@@ -4,18 +4,23 @@ except ImportError:
     from distutils.core import setup
 
 with open('README.rst') as file:
-    long_description = file.read()
+    desc = []
+    for line in file:
+        if line.strip() == '.. __CUT__':
+            break
+        desc.append(line)
+    long_description = ''.join(desc)
 
 setup(
     name = 'fixedint',
-    version = '0.1.1',
+    version = '0.1.2',
     author = 'Robert Xiao',
     author_email = 'robert.bo.xiao@gmail.com',
     url = 'https://github.com/nneonneo/fixedint',
     license = 'PSF',
     classifiers = [
         "License :: OSI Approved :: Python Software Foundation License",
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 2",
@@ -24,6 +29,7 @@ setup(
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.2",
+        "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
         "Topic :: Utilities",
     ],
