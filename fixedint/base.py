@@ -75,22 +75,21 @@ class _FixedIntBaseMeta(type):
         dict['maxval'] = FixedProperty(max)
 
         if signed:
-            _mask = (1<<width) - 1
+            _mask1 = (1<<(width-1)) - 1
             _mask2 = 1<<(width-1)
             def _rectify(val):
-                val = val & _mask
-                return int(val - 2*(val & _mask2))
+                return (val & _mask1) - (val & _mask2)
         else:
             _mask = (1<<width) - 1
             def _rectify(val):
-                return int(val & _mask)
+                return val & _mask
         dict['_rectify'] = staticmethod(_rectify)
 
         if not mutable:
             intbase = bases[1]
             def _newfunc(cls, val=0):
                 ''' Convert an integer into a fixed-width integer. '''
-                return intbase.__new__(cls, _rectify(val))
+                return intbase.__new__(cls, _rectify(int(val)))
             _newfunc.__name__ = '__new__'
             dict['__new__'] = _newfunc
 
@@ -223,7 +222,9 @@ class MutableFixedInt(FixedInt):
 
     def __init__(self, val=0, base=None):
         ''' Convert an integer into a fixed-width integer. '''
-        if base is not None:
+        if base is None:
+            val = int(val)
+        else:
             val = int(val, base)
 
         self._val = self._rectify(val)
@@ -347,14 +348,17 @@ for f in _mutable_binfunc:
 ## In-place operators
 def _inplace_factory_mutable(iname, name, op):
     ''' Factory function producing methods for augmented assignments on Mutable instances. '''
-    intfunc = getattr(int, name)
-    def _f(self, other):
-        self._val = self._rectify(intfunc(self._val, int(other)))
-        return self
+    # This uses compiled operators instead of an int.__X__ function call for speed.
+    # Measured improvement is about 15% speed increase.
+    exec("""
+def _f(self, other):
+    self._val = self._rectify(self._val %s int(other))
+    return self
+globals()['_f'] = _f""" % op)
     _f.__name__ = iname
     doc = list.__iadd__.__doc__
     if doc:
-        _f.__doc__ = doc.replace('__iadd__', name).replace('+=', op)
+        _f.__doc__ = doc.replace('__iadd__', name).replace('+=', op+'=')
     return _f
 
 # pow is special because it takes three arguments.
@@ -365,4 +369,4 @@ for f in _inplace_func:
     fn, op = f.split(',')
     si = '__i%s__' % fn
     so = '__%s__' % fn
-    setattr(MutableFixedInt, si, _inplace_factory_mutable(si, so, op+'='))
+    setattr(MutableFixedInt, si, _inplace_factory_mutable(si, so, op))
