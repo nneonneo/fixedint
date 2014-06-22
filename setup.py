@@ -3,9 +3,12 @@ try:
 except ImportError:
     from distutils.core import setup
 
+with open('README.rst') as file:
+    long_description = file.read()
+
 setup(
     name = 'fixedint',
-    version = '0.1.0',
+    version = '0.1.1',
     author = 'Robert Xiao',
     author_email = 'robert.bo.xiao@gmail.com',
     url = 'https://github.com/nneonneo/fixedint',
@@ -26,5 +29,5 @@ setup(
     ],
     description = "simple fixed-width integers",
     packages = ['fixedint'],
-    long_description=open('README.rst').read(),
+    long_description=long_description,
 )
