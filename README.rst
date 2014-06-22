@@ -108,3 +108,9 @@ Byte Conversion
 methods matches that of Python 3.4's ``int.to_bytes`` and ``int.from_bytes`` methods.
 
 
+
+Build Status
+============
+
+.. image:: https://travis-ci.org/nneonneo/fixedint.svg?branch=master
+    :target: https://travis-ci.org/nneonneo/fixedint
