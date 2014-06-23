@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import functools
 import sys
 from fixedint.compat import *
 from weakref import WeakValueDictionary
@@ -397,7 +396,9 @@ def _nonarith_unary_factory_mutable(name):
         return intfunc(self._val)
     return _f
 
-_mutable_unary = 'int float index'.split()
+_mutable_unary = 'int float'.split()
+if sys.version_info[:2] >= (2,5):
+    _mutable_unary += ['index']
 if sys.version_info[:2] >= (2,6):
     _mutable_unary += ['trunc']
 if PY3K:

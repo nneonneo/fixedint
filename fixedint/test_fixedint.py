@@ -125,7 +125,8 @@ class BasicTests(unittest.TestCase):
             if not PY3K:
                 self.assertEqual(long(x), 42)
             self.assertEqual(bool(x), True)
-            self.assertEqual(list(range(100))[x], 42)
+            if sys.version_info[:2] >= (2,5):
+                self.assertEqual(list(range(100))[x], 42)
             if sys.version_info[:2] >= (2,6):
                 self.assertEqual(math.trunc(x), 42)
 
