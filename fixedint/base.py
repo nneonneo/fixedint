@@ -16,6 +16,9 @@ class FixedMetaProperty(object):
     def __init__(self, name):
         self.name = name
     def __get__(self, obj, type=None):
+        if self.name not in obj.__dict__:
+            # this should only happen when trying to access FixedInt.prop, which help() does
+            raise AttributeError("Attribute %s not defined on base class" % self.name)
         prop = obj.__dict__[self.name]
         return prop.__get__(obj)
     def __set__(self, obj, value):
