@@ -14,7 +14,7 @@ readme.close()
 
 setup(
     name = 'fixedint',
-    version = '0.1.3',
+    version = '0.1.4',
     author = 'Robert Xiao',
     author_email = 'robert.bo.xiao@gmail.com',
     url = 'https://github.com/nneonneo/fixedint',
