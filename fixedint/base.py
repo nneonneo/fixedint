@@ -5,16 +5,18 @@ from fixedint.compat import *
 from weakref import WeakValueDictionary
 
 class FixedProperty(object):
-    def __init__(self, val):
+    def __init__(self, val, doc):
         self.val = val
+        self.__doc__ = doc
     def __get__(self, obj, type=None):
         return self.val
     def __set__(self, obj, value):
         raise AttributeError("property is read-only")
 
 class FixedMetaProperty(object):
-    def __init__(self, name):
+    def __init__(self, name, doc):
         self.name = name
+        self.__doc__ = doc
     def __get__(self, obj, type=None):
         if self.name not in obj.__dict__:
             # this should only happen when trying to access FixedInt.prop, which help() does
@@ -31,6 +33,12 @@ if not PY3K:
     int = long
 
 _class_cache = WeakValueDictionary()
+
+_doc_width = "Bit width of this integer, including the sign bit."
+_doc_signed = "True if this integer is a twos-complement signed type."
+_doc_mutable = "True if this integer is mutable (modifiable in-place)."
+_doc_minval = "Minimum representable value of this integer type"
+_doc_maxval = "Maximum representable value of this integer type"
 
 _subclass_token = object()
 class _FixedIntBaseMeta(type):
@@ -70,11 +78,11 @@ class _FixedIntBaseMeta(type):
             bases = (FixedInt, int)
 
         dict = {}
-        dict['width'] = FixedProperty(width)
-        dict['signed'] = FixedProperty(signed)
-        dict['mutable'] = FixedProperty(mutable)
-        dict['minval'] = FixedProperty(min)
-        dict['maxval'] = FixedProperty(max)
+        dict['width'] = FixedProperty(width, doc=_doc_width)
+        dict['signed'] = FixedProperty(signed, doc=_doc_signed)
+        dict['mutable'] = FixedProperty(mutable, doc=_doc_mutable)
+        dict['minval'] = FixedProperty(min, doc=_doc_minval)
+        dict['maxval'] = FixedProperty(max, doc=_doc_maxval)
 
         if signed:
             _mask1 = (1<<(width-1)) - 1
@@ -101,11 +109,11 @@ class _FixedIntBaseMeta(type):
         _class_cache[cachekey] = cls
         return cls
 
-    width = FixedMetaProperty('width')
-    signed = FixedMetaProperty('signed')
-    mutable = FixedMetaProperty('mutable')
-    minval = FixedMetaProperty('minval')
-    maxval = FixedMetaProperty('maxval')
+    width = FixedMetaProperty('width', doc=_doc_width)
+    signed = FixedMetaProperty('signed', doc=_doc_signed)
+    mutable = FixedMetaProperty('mutable', doc=_doc_mutable)
+    minval = FixedMetaProperty('minval', doc=_doc_minval)
+    maxval = FixedMetaProperty('maxval', doc=_doc_maxval)
 
 class _FixedIntMeta(_FixedIntBaseMeta):
     __new__ = type.__new__
