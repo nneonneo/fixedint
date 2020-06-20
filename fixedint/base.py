@@ -311,7 +311,7 @@ class MutableFixedInt(FixedInt):
         return self
 
     def __setitem__(self, item, value):
-        ''' Modify a slice of aninteger.
+        ''' Modify a slice of an integer.
 
         x[a]=y sets a single bit at position a.
         x[a:b]=y sets a range of bits from an integer.
@@ -319,6 +319,7 @@ class MutableFixedInt(FixedInt):
         See __getitem__ for more details on the slice notation.
         '''
 
+        value = int(value)
         if isinstance(item, slice):
             start, stop = self._canonicalize_slice(item)
             mask = (1 << (stop - start)) - 1

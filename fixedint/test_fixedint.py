@@ -283,6 +283,26 @@ class ExtraFunctionTests(unittest.TestCase):
         val[:] = testval
         self.assertEqual(val2, testval)
 
+    def test_setslice_fixedint(self):
+        # Regression test for GitHub issue #3
+        f16 = FixedInt(16, signed=False, mutable=True)
+        f8 = FixedInt(8, signed=False, mutable=True)
+        x = f16(0x0FFF)
+        y = f8(3)
+        x[0:8] = int(y)
+        assert repr(x) == 'MutableUInt16(3843)'
+        x[0:8] = y
+        assert repr(x) == 'MutableUInt16(3843)'
+
+        f95 = FixedInt(95, signed=False, mutable=True)
+        f40 = FixedInt(40, signed=False, mutable=True)
+        x = f95(0x0FFFFFFFFFFFFFFF)
+        y = f40(0xF)[0:40]
+        x[0:40] = int(y)
+        assert bin(x) == '0b111111111111111111110000000000000000000000000000000000001111'
+        x[0:40] = y
+        assert bin(x) == '0b111111111111111111110000000000000000000000000000000000001111'
+
 tests.append(ExtraFunctionTests)
 
 # ----------------------------------------------------------------------------
