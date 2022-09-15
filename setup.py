@@ -38,5 +38,6 @@ setup(
     ],
     description = "simple fixed-width integers",
     packages = ['fixedint'],
+    package_data = {"fixedint": ["py.typed", "*.pyi"]},
     long_description=long_description,
 )
