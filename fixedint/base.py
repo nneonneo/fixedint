@@ -97,9 +97,13 @@ class _FixedIntBaseMeta(type):
 
         if not mutable:
             intbase = bases[1]
-            def _newfunc(cls, val=0):
+            def _newfunc(cls, val=0, base=None):
                 ''' Convert an integer into a fixed-width integer. '''
-                return intbase.__new__(cls, _rectify(int(val)))
+                if base is None:
+                    val = int(val)
+                else:
+                    val = int(val, base)
+                return intbase.__new__(cls, _rectify(val))
             _newfunc.__name__ = '__new__'
             dict['__new__'] = _newfunc
 
@@ -458,7 +462,7 @@ globals()['_f'] = _f""" % op)
     return _f
 
 # pow is special because it takes three arguments.
-_inplace_func = 'add,+ sub,- mul,* truediv,/ floordiv,// mod,% lshift,<< rshift,<< and,& or,| xor,^'.split()
+_inplace_func = 'add,+ sub,- mul,* floordiv,// mod,% lshift,<< rshift,<< and,& or,| xor,^'.split()
 if not PY3K:
     _inplace_func += ['div,/']
 for f in _inplace_func:
