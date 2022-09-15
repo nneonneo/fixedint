@@ -5,7 +5,7 @@ PY3K = sys.version_info[0] >= 3
 
 from fixedint import *
 
-tests = []
+tests = []  # type: list[type[unittest.TestCase]]
 
 # ----------------------------------------------------------------------------
 class ClassTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class ClassTests(unittest.TestCase):
 
     def test_subclassing(self):
         from fixedint.util import HexFormattingMixin
-        class MyUInt32(HexFormattingMixin, UInt32):
+        class MyUInt32(HexFormattingMixin, UInt32):  # type: ignore[misc]
             pass
         self.assertEqual(str(MyUInt32(32)), '0x00000020')
 

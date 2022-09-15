@@ -1,4 +1,4 @@
-from fixedint.base import FixedInt, MutableFixedInt
+from fixedint import FixedInt, MutableFixedInt
 
 __all__ = []
 

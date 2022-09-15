@@ -14,7 +14,7 @@ readme.close()
 
 setup(
     name = 'fixedint',
-    version = '0.1.6',
+    version = '0.2.0',
     author = 'Robert Xiao',
     author_email = 'robert.bo.xiao@gmail.com',
     url = 'https://github.com/nneonneo/fixedint',
@@ -31,6 +31,9 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Utilities",
     ],
     description = "simple fixed-width integers",
