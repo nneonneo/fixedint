@@ -94,7 +94,7 @@ Slices support two main syntaxes::
     value[<start>:<end>]
     value[<start>:<length>j]
 
-The latter syntax is more convenient when dealing with fixed-width fields. Both of the
+The latter syntax is more convenient when dealing with fixed-width fields. Either of the
 slice arguments may be omitted, in which case they will default to the LSB and MSB of
 the ``FixedInt`` respectively.
 
@@ -105,7 +105,8 @@ Byte Conversion
 
 ``FixedInt`` instances can be converted to and from raw byte representations by using the
 ``.to_bytes`` instance method and the ``.from_bytes`` classmethod. The usage of these
-methods matches that of Python 3.4's ``int.to_bytes`` and ``int.from_bytes`` methods.
+methods matches that of Python 3.4's ``int.to_bytes`` and ``int.from_bytes`` methods, but
+the length is automatically inferred from the integer width.
 
 
 
