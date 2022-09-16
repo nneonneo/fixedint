@@ -115,5 +115,5 @@ the length is automatically inferred from the integer width.
 Build Status
 ============
 
-.. image:: https://travis-ci.org/nneonneo/fixedint.svg?branch=master
-    :target: https://travis-ci.org/nneonneo/fixedint
+.. image:: https://github.com/nneonneo/fixedint/actions/workflows/python-package.yml/badge.svg
+    :target: https://github.com/nneonneo/fixedint/actions/workflows/python-package.yml
